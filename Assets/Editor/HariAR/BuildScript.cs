@@ -1,4 +1,4 @@
-// BuildScript.cs — headless APK build, used to verify the generated manifest.
+﻿// BuildScript.cs — headless APK build or Editor menu build tool.
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -8,10 +8,20 @@ namespace HariAR.EditorTools
 {
     public static class BuildScript
     {
+        [MenuItem("HARI-AR/Build Android APK", priority = 50)]
         public static void BuildApk()
         {
             var scenes = EditorBuildSettings.scenes
                 .Where(s => s.enabled).Select(s => s.path).ToArray();
+
+            if (scenes.Length == 0)
+            {
+                if (!Application.isBatchMode)
+                {
+                    EditorUtility.DisplayDialog("Build Failed", "No active scenes found in Build Settings.", "OK");
+                }
+                return;
+            }
 
             var options = new BuildPlayerOptions
             {
@@ -27,8 +37,24 @@ namespace HariAR.EditorTools
             Debug.Log($"[HARI-AR][Build] result={summary.result} " +
                       $"errors={summary.totalErrors} size={summary.totalSize}");
 
-            if (summary.result != BuildResult.Succeeded)
-                EditorApplication.Exit(1);
+            if (summary.result == BuildResult.Succeeded)
+            {
+                if (!Application.isBatchMode)
+                {
+                    EditorUtility.DisplayDialog("Build Succeeded", $"APK built successfully at Builds/HariAR.apk\nSize: {summary.totalSize / 1024f / 1024f:F2} MB", "OK");
+                }
+            }
+            else
+            {
+                if (!Application.isBatchMode)
+                {
+                    EditorUtility.DisplayDialog("Build Failed", $"APK build failed with {summary.totalErrors} errors. Check console for details.", "OK");
+                }
+                else
+                {
+                    EditorApplication.Exit(1);
+                }
+            }
         }
     }
 }
